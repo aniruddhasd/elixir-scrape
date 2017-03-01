@@ -13,14 +13,17 @@ defmodule Scrape.Website do
   alias Scrape.Website
   alias Scrape.Exquery
   alias Scrape.Link
+  alias Httpoison
 
-  defstruct title: "", description: "", url: "", image: "", favicon: "",
+  defstruct valid: "", type: "", title: "", description: "", url: "", image: "", favicon: "",
     feeds: [], tags: []
 
   @spec parse(String.t, String.t) :: %Website{}
   def parse(html, url) do
     %Scrape.Website{
       url: url,
+      valid: validate_url(url),
+      type: find_type(html),
       title: find_title(html),
       description: find_description(html),
       image: find_image(html),
@@ -30,6 +33,17 @@ defmodule Scrape.Website do
     }
     |> find_canonical(html)
     |> normalize_urls
+  end
+
+  @doc """
+    Returns if the URL is VALID/INVALID
+  """
+  @spec validate_url(String.t) :: String.t
+  def validate_url(url) do
+    case HTTPoison.get(url) do
+      {:ok, body}      -> true
+      {:error, reason} -> false
+    end
   end
 
   @doc """
@@ -47,6 +61,22 @@ defmodule Scrape.Website do
     else
       title
     end
+  end
+
+  @doc """
+    Returns the type of a HTML site
+  """
+  @spec find_type(String.t) :: String.t
+  def find_type(html) do
+
+    selector = """
+      meta[property='og:type'],
+      meta[name='twitter:type'],
+      meta[name='type']
+    """
+
+    Exquery.attr html, selector, "content", :longest
+
   end
 
   @doc """
@@ -88,14 +118,14 @@ defmodule Scrape.Website do
       link[rel='icon']
     """
 
-    favicon = Exquery.attr html, selector, "href", :first
+    favicon = Exquery.attr html, selector, "href", :longest
 
     if favicon do
       favicon
     else
       Exquery.attr html,
         "meta[name='msapplication-TileImage']",
-	"content",
+        "content",
         :first
     end
   end

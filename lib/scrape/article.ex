@@ -11,7 +11,7 @@ defmodule Scrape.Article do
   alias Scrape.Util.Text
   alias Scrape.Util.Tags
 
-  defstruct title: "", description: "", url: "", image: "", favicon: "",
+  defstruct valid: "", type: "", title: "", description: "", url: "", image: "", favicon: "",
     feeds: [], tags: [], fulltext: ""
 
   def parse(website, html) do
